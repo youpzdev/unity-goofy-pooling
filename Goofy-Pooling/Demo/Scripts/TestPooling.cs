@@ -80,7 +80,7 @@ public class TestPooling : MonoBehaviour
             $"Default  (run: {defaultCycle})\n" +
             $"  spawn:   {defaultSpawnTime}ms  | gc: {defaultSpawnGC / 1024}kb\n" +
             $"  destroy: {defaultDestroyTime}ms  | gc: {defaultDestroyGC / 1024}kb\n\n" +
-            $"  summary: {defaultDestroyTime + defaultSpawnTime}ms  | gc: {(defaultSpawnGC / 1024) + (defaultDestroyGC / 1024)}kb" +
+            $"  summary: {defaultDestroyTime + defaultSpawnTime}ms  | gc: {(defaultSpawnGC / 1024) + (defaultDestroyGC / 1024)}kb\n" +
             $"Pooling  (run: {poolingCycle})\n" +
             $"  spawn:   {poolingSpawnTime}ms  | gc: {poolingSpawnGC / 1024}kb\n" +
             $"  destroy: {poolingDestroyTime}ms  | gc: {poolingDestroyGC / 1024}kb" +
