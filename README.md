@@ -2,7 +2,7 @@
 
 > Zero-config object pooling for Unity. Drop in, swap calls, done.
 
-**by [youpzdev](https://github.com/youpzz)**
+**by [youpzdev](https://github.com/youpzdev)**
 
 ---
 
@@ -21,6 +21,28 @@ Pooling.Destroy(obj);
 ```
 
 That's it.
+
+---
+
+## Install
+
+Import `Goofy-Pooling.unitypackage` into your project or copy the contents anywhere into your `Assets/` folder.
+
+No dependencies. No packages. No bullshit.
+
+---
+
+## Usage
+
+```csharp
+// ── Spawn ──────────────────────────────────────────────────
+GameObject bullet = Pooling.Instantiate(bulletPrefab, spawnPoint.position, spawnPoint.rotation);
+
+// ── Return to pool ─────────────────────────────────────────
+Pooling.Destroy(bullet);
+```
+
+Objects are automatically tracked by prefab reference. First call creates the pool, subsequent calls reuse existing instances.
 
 ---
 
@@ -53,45 +75,21 @@ Tested on **1000 objects**, 7 runs average:
 | Default | 108ms | 6ms | 114ms | 0kb |
 | **Goofy Pooling** | **55ms** | **40ms** | **95ms** | **0kb** |
 
-At extreme counts, SetActive overhead dominates — that's Unity, not the pool.
+At extreme counts, `SetActive` overhead dominates — that's Unity, not the pool.
 
 </details>
 
 ---
 
-## Install
-
-Import `Goofy-Pooling.unitypackage` in your project or just drop content anywhere into your `Assets/` folder.
-
-No dependencies. No packages. No bullshit.
-
----
-
-## Usage
-
-```csharp
-// Spawn
-GameObject bullet = Pooling.Instantiate(bulletPrefab, spawnPoint.position, spawnPoint.rotation);
-
-// Return to pool
-Pooling.Destroy(bullet);
-```
-
-Objects are automatically tracked by prefab reference. First call creates the pool, subsequent calls reuse existing instances.
-
----
-
 ## How it works
 
-Two dictionaries:
-
-- `pools` — maps prefab → queue of inactive instances
-- `prefabMap` — maps instance → its source prefab
-
-On `Instantiate`: dequeue an existing object or create a new one.  
-On `Destroy`: `SetActive(false)` and enqueue back.
-
-No `GetComponent`, no MonoBehaviour marker, no reflection. O(1) lookup.
+| | |
+|---|---|
+| 📦 **pools** | Maps prefab → queue of inactive instances |
+| 🗺️ **prefabMap** | Maps instance → its source prefab |
+| ⚡ **Instantiate** | Dequeues existing object or creates a new one |
+| 🗑️ **Destroy** | `SetActive(false)` and enqueues back |
+| 🚀 **Lookup** | No `GetComponent`, no MonoBehaviour marker, no reflection — O(1) |
 
 ---
 
@@ -100,6 +98,17 @@ No `GetComponent`, no MonoBehaviour marker, no reflection. O(1) lookup.
 - Objects must be returned via `Pooling.Destroy()` — calling Unity's `Object.Destroy()` directly will leak the instance
 - Pool never shrinks — if you spawn 1000 bullets and never need that many again, they stay in memory
 - `transform.parent` is not reset on reuse — handle that yourself if needed
+
+---
+
+## Part of the Goofy Tools collection
+
+| | |
+|---|---|
+| **goofy-pooling** | 🐟 You are here |
+| [**goofy-timers**](https://github.com/youpzdev/unity-goofy-timers) | ⏱️ No-coroutine timer system |
+| [**goofy-eventbus**](https://github.com/youpzdev/unity-goofy-eventbus) | 📡 Type-safe event bus |
+| [**goofy-save**](https://github.com/youpzdev/unity-goofy-saves) | 💾 AES-256 encrypted save system |
 
 ---
 
