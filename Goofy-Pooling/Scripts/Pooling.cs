@@ -7,7 +7,7 @@ public static class Pooling
     private static readonly Dictionary<GameObject, GameObject> prefabMap = new();
 
     // ====== Methods ====================================================================================
-    public static GameObject Instantiate(GameObject prefab, Vector3 position, Quaternion rotation)
+    public static GameObject Instantiate(GameObject prefab, Vector3 position = default, Quaternion rotation = default, Transform parent = null)
     {
         if (!pools.ContainsKey(prefab)) pools[prefab] = new Queue<GameObject>();
 
@@ -25,8 +25,11 @@ public static class Pooling
             prefabMap[obj] = prefab;
         }
 
+        if (parent != null) obj.transform.SetParent(parent);
+
         return obj;
     }
+    
     public static void Destroy(GameObject obj)
     {
         if (!prefabMap.TryGetValue(obj, out GameObject prefab)) return;
