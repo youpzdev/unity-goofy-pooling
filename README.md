@@ -49,6 +49,13 @@ Pooling.Instantiate(prefab, parent: transform);
 
 // ── Return to pool ─────────────────────────────────────────
 Pooling.Destroy(bullet);
+
+// ── Prewarm (optional) ─────────────────────────────────────
+Pooling.Prewarm(prefab, 100);
+
+// ── Cleanup ────────────────────────────────────────────────
+Pooling.Clear(prefab);
+Pooling.ClearAll();
 ```
 
 Objects are automatically tracked by prefab reference. First call creates the pool, subsequent calls reuse existing instances.
@@ -57,14 +64,27 @@ Objects are automatically tracked by prefab reference. First call creates the po
 
 ## Benchmarks
 
-Tested on **1000 objects**, 7 runs average:
+Tested on **10 000 objects**, 5 runs average:
+
+| | Spawn | Destroy | Total | GC |
+|---|---|---|---|---|
+| Default | 64ms | 3ms | 67ms | 4kb |
+| **Goofy Pooling** | **33ms** | **19ms** | **52ms** | **0kb** |
+
+**~2x faster spawn, zero GC allocations.**
+
+> Destroy is slower than Unity's — that's the cost of `SetActive(false)` + pool bookkeeping.
+> In practice: you save more on spawn than you spend on destroy, and you never trigger the GC.
+
+<details>
+<summary>1 000 objects</summary>
 
 | | Spawn | Destroy | Total | GC |
 |---|---|---|---|---|
 | Default | 7ms | 0ms | 7ms | 0kb |
 | **Goofy Pooling** | **3ms** | **1ms** | **4ms** | **0kb** |
 
-**~2x faster** on real-world spawn counts. Zero allocations.
+</details>
 
 <details>
 <summary>500 objects</summary>
@@ -94,23 +114,34 @@ At extreme counts, `SetActive` overhead dominates — that's Unity, not the pool
 
 | | |
 |---|---|
-| 📦 **pools** | Maps prefab → queue of inactive instances |
-| 🗺️ **prefabMap** | Maps instance → its source prefab |
-| ⚡ **Instantiate** | Dequeues existing object or creates a new one |
-| 🗑️ **Destroy** | `SetActive(false)` and enqueues back |
-| 🚀 **Lookup** | No `GetComponent`, no MonoBehaviour marker, no reflection — O(1) |
+| 📦 **pools** | Maps prefab → `Stack` of inactive instances |
+| 🗺️ **prefabMap** | Maps `instance.GetInstanceID()` (int) → source prefab |
+| ⚡ **Instantiate** | Pops from stack or creates a new instance |
+| 🗑️ **Destroy** | `SetActive(false)` and pushes back to stack |
+| 🔥 **Prewarm** | Pre-fills the pool before gameplay — eliminates first-run spike |
+| 🚀 **Lookup** | `int` key dictionary — no `GetComponent`, no reflection, O(1) |
+| 🌍 **PoolRoot** | All pooled objects live under a `[Pool]` GameObject, `DontDestroyOnLoad` |
 
 ---
 
 ## Limitations
 
 - Objects must be returned via `Pooling.Destroy()` — calling Unity's `Object.Destroy()` directly will leak the instance
-- Pool never shrinks — if you spawn 1000 bullets and never need that many again, they stay in memory
+- Pool never shrinks automatically — use `Clear()` / `ClearAll()` when you need to free memory (e.g. on scene unload)
 - `transform.parent` is not reset on reuse — handle that yourself if needed
+- First run without `Prewarm` will be slower — the pool allocates on demand
 
 ---
 
 ## Changelog
+
+### v1.2.0
+- `Queue` replaced with `Stack` — LIFO reuse keeps recently-used objects in CPU cache
+- `prefabMap` key changed from `GameObject` to `int` (`GetInstanceID()`) — faster hash, cheaper equality
+- `ContainsKey` + indexer replaced with `TryGetValue` — single dictionary lookup instead of two
+- Added `Prewarm(prefab, count)` — pre-fill pool before gameplay to avoid first-run spike
+- Added `Clear(prefab)` and `ClearAll()` — explicit pool cleanup
+- Added `PoolRoot` — pooled objects are parented to a `[Pool]` object, survives scene loads
 
 ### v1.1.0
 - `Instantiate` now accepts optional `position`, `rotation` and `parent` — all arguments are optional
