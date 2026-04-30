@@ -784,7 +784,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefab: {fileID: 8251599534645963511, guid: ce7a9c8d06d3ad34c915d0192120d1e6, type: 3}
-  spawnAmount: 500
+  spawnAmount: 10000
   statsText: {fileID: 2123709317}
   runDefaultButton: {fileID: 1181097439}
   runPoolButton: {fileID: 896329650}
@@ -1000,7 +1000,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: youpzdev\nGoofy Pooling v1
+  m_text: youpzdev\nGoofy Pooling v1.2
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
