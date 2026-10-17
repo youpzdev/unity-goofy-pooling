@@ -11,7 +11,7 @@ public class TestPooling : MonoBehaviour
     [SerializeField] private TMP_Text statsText;
     [SerializeField] private Button runDefaultButton;
     [SerializeField] private Button runPoolButton;
-    [Space(10), Header("Spawn Pos Range Min/Max")]
+    [Space(10)] [Header("Spawn Pos Range Min/Max")]
     [SerializeField] private Vector2 xPos;
     [SerializeField] private Vector2 yPos;
     [SerializeField] private Vector2 zPos;
@@ -20,6 +20,7 @@ public class TestPooling : MonoBehaviour
     private long poolingSpawnGC, poolingDestroyGC;
     private long defaultSpawnTime, defaultDestroyTime;
     private long poolingSpawnTime, poolingDestroyTime;
+
     private int defaultCycle, poolingCycle;
 
     private void Start()
@@ -27,6 +28,7 @@ public class TestPooling : MonoBehaviour
         runDefaultButton?.onClick.AddListener(DefaultTest);
         runPoolButton?.onClick.AddListener(PoolingTest);
     }
+
     private void DefaultTest()
     {
         var spawned = new GameObject[spawnAmount];
@@ -50,6 +52,7 @@ public class TestPooling : MonoBehaviour
 
         UpdateUI();
     }
+
     private void PoolingTest()
     {
         var spawned = new GameObject[spawnAmount];
@@ -73,6 +76,7 @@ public class TestPooling : MonoBehaviour
 
         UpdateUI();
     }
+
     private void UpdateUI()
     {
         statsText.text =
@@ -87,5 +91,6 @@ public class TestPooling : MonoBehaviour
             $"  summary: {poolingDestroyTime + poolingSpawnTime}ms  | gc: {(poolingSpawnGC / 1024) + (poolingDestroyGC / 1024)}kb\n\n" +
             $"Result: {defaultDestroyTime + defaultSpawnTime - (poolingDestroyTime + poolingSpawnTime)}ms";
     }
-    private Vector3 RandomPos() => new(UnityEngine.Random.Range(xPos.x, xPos.y), UnityEngine.Random.Range(yPos.x, yPos.y), UnityEngine.Random.Range(zPos.x, zPos.y));
+
+    private Vector3 RandomPos() {return new(UnityEngine.Random.Range(xPos.x, xPos.y), UnityEngine.Random.Range(yPos.x, yPos.y), UnityEngine.Random.Range(zPos.x, zPos.y));}
 }

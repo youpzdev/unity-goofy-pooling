@@ -11,6 +11,7 @@ public static class Pooling
         public readonly HashSet<Entry> Active = new();
         public readonly HashSet<Entry> Returning = new();
         public readonly List<Entry> Scratch = new();
+
         public int Capacity = int.MaxValue;
     }
 
@@ -19,13 +20,16 @@ public static class Pooling
         public int Id;
         public GameObject Instance;
         public Pool Pool;
+
         public bool DiscardRequested;
         public bool ReturnRequested;
+
         public int Busy;
     }
 
     private static readonly Dictionary<int, Entry> prefabMap = new(1024);
     private static readonly Dictionary<GameObject, Pool> pools = new();
+
     private static Transform _poolRoot;
 
     private static Transform PoolRoot
@@ -90,7 +94,7 @@ public static class Pooling
         return entry.Instance;
     }
 
-    public static GameObject Instantiate(GameObject prefab, Transform parent) => Instantiate(prefab, Vector3.zero, Quaternion.identity, parent);
+    public static GameObject Instantiate(GameObject prefab, Transform parent) {return Instantiate(prefab, Vector3.zero, Quaternion.identity, parent);}
 
     public static void Destroy(GameObject instance)
     {
@@ -161,7 +165,7 @@ public static class Pooling
         while (pool.Inactive.Count > maxInactive) Dispose(pool.Inactive.Pop());
     }
 
-    public static void Clear(GameObject prefab) => Clear(prefab, false);
+    public static void Clear(GameObject prefab) {Clear(prefab, false);}
 
     public static void Clear(GameObject prefab, bool includeActive)
     {
@@ -170,12 +174,9 @@ public static class Pooling
         ClearPool(pool, includeActive);
     }
 
-    public static void ClearAll() => ClearAll(false);
+    public static void ClearAll() {ClearAll(false);}
 
-    public static void ClearAll(bool includeActive)
-    {
-        foreach (var pool in new List<Pool>(pools.Values)) ClearPool(pool, includeActive);
-    }
+    public static void ClearAll(bool includeActive) {foreach (var pool in new List<Pool>(pools.Values)) ClearPool(pool, includeActive);}
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void Reset()
@@ -198,10 +199,7 @@ public static class Pooling
             pool.Active.Clear();
             pool.Returning.Clear();
         }
-        foreach (var entry in entries)
-        {
-            entry.DiscardRequested = true;
-        }
+        foreach (var entry in entries) entry.DiscardRequested = true;
         foreach (var entry in entries)
             if (entry.Busy == 0) Dispose(entry);
     }
@@ -263,8 +261,5 @@ public static class Pooling
         else Object.DestroyImmediate(instance);
     }
 
-    private static void ValidatePrefab(GameObject prefab)
-    {
-        if (prefab == null) throw new ArgumentNullException(nameof(prefab), "Pooling: prefab отсутствует или уничтожен");
-    }
+    private static void ValidatePrefab(GameObject prefab) {if (prefab == null) throw new ArgumentNullException(nameof(prefab), "Pooling: prefab отсутствует или уничтожен");}
 }

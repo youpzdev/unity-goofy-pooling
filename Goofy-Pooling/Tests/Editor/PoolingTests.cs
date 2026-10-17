@@ -17,10 +17,7 @@ public class PoolingTests
     }
 
     [TearDown]
-    public void TearDown()
-    {
-        ResetPool();
-    }
+    public void TearDown() {ResetPool();}
 
     [Test]
     public void ReturnedInstanceLeavesItsPreviousParent()
@@ -410,6 +407,7 @@ public class PoolingReturnOnEnable : MonoBehaviour
 public class PoolingClearDuringCheckout : MonoBehaviour
 {
     public static GameObject Prefab;
+
     public bool ClearOnEnable;
     public Transform ClearParent;
 
