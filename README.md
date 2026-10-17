@@ -33,6 +33,35 @@ Objects destroyed through Unity are discarded when encountered during reuse
 or counting. Instantiate activates the object, so normal Unity lifecycle
 callbacks still run.
 
+## Preparing an instance
+
+```csharp
+var bullet = Pooling.Instantiate(bulletPrefab, position, rotation,
+    parent: null, prepare: instance =>
+    {
+        instance.GetComponent<Rigidbody>().linearVelocity = direction * speed;
+    });
+```
+
+The five-argument overload runs prepare once while the instance is inactive,
+after assigning its parent, world position, rotation and pool ownership.
+OnEnable sees the prepared state on both first creation and reuse. Pass a
+Transform as parent when needed. Existing Instantiate signatures and calls
+with a positional null parent remain valid. A null prepare is allowed.
+
+Do not activate the instance inside prepare. If prepare throws, checkout is
+cancelled and the partially prepared instance is discarded, not returned for
+reuse. An InvalidOperationException names prepare and the prefab, with the
+original exception in InnerException. Destruction during play is deferred by
+Unity; the instance stays inactive while waiting for destruction. Other
+instances and configured capacities are preserved.
+
+Pooling.Destroy inside prepare cancels activation and returns the instance
+to the pool after prepare finishes; Instantiate returns null. Repeated
+Destroy calls remain harmless. Clear with includeActive: true also cancels
+checkout and returns null, destroying the instance after prepare finishes.
+Default Clear only removes free objects and leaves this checkout intact.
+
 ## Capacity and counts
 
 ```csharp

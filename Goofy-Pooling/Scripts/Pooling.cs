@@ -61,6 +61,12 @@ public static class Pooling
     }
 
     public static GameObject Instantiate(GameObject prefab, Vector3 position = default, Quaternion rotation = default, Transform parent = null)
+    {return InstantiatePrepared(prefab, position, rotation, parent, null);}
+
+    public static GameObject Instantiate(GameObject prefab, Vector3 position, Quaternion rotation, Transform parent, Action<GameObject> prepare)
+    {return InstantiatePrepared(prefab, position, rotation, parent, prepare);}
+
+    private static GameObject InstantiatePrepared(GameObject prefab, Vector3 position, Quaternion rotation, Transform parent, Action<GameObject> prepare)
     {
         ValidatePrefab(prefab);
         var pool = GetOrCreate(prefab);
@@ -74,6 +80,7 @@ public static class Pooling
 
         if (entry == null) entry = CreateInstance(prefab, pool);
         pool.Active.Add(entry);
+        bool cancelled = false;
         entry.Busy++;
         try
         {
@@ -81,7 +88,18 @@ public static class Pooling
             if (!entry.DiscardRequested)
             {
                 entry.Instance.transform.SetPositionAndRotation(position, rotation == default ? Quaternion.identity : rotation);
-                entry.Instance.SetActive(true);
+                try
+                {
+                    prepare?.Invoke(entry.Instance);
+                }
+                catch (Exception error)
+                {
+                    entry.DiscardRequested = true;
+                    throw new InvalidOperationException($"Pooling.Instantiate: ошибка prepare у prefab {prefab.name}, выдача отменена, экземпляр отправлен на удаление", error);
+                }
+                cancelled = entry.DiscardRequested || entry.ReturnRequested || entry.Instance == null;
+                if (entry.Instance == null) entry.DiscardRequested = true;
+                if (!cancelled) entry.Instance.SetActive(true);
             }
         }
         finally
@@ -91,7 +109,7 @@ public static class Pooling
             else if (entry.ReturnRequested) ReturnEntry(entry);
         }
 
-        return entry.Instance;
+        return cancelled ? null : entry.Instance;
     }
 
     public static GameObject Instantiate(GameObject prefab, Transform parent) {return Instantiate(prefab, Vector3.zero, Quaternion.identity, parent);}

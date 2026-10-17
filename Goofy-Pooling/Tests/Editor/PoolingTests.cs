@@ -356,6 +356,125 @@ public class PoolingTests
         Assert.That(Pooling.CountInactive(prefab), Is.Zero);
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public void PrepareRunsBeforeActivationWithAssignedTransformAndOwnership(bool reused)
+    {
+        var parent = new GameObject(Prefix + "PrepareParent");
+        prefab.AddComponent<PoolingPreparedState>();
+        GameObject previous = null;
+        if (reused) {previous = Pooling.Instantiate(prefab); Pooling.Destroy(previous);}
+        var position = new Vector3(3, 4, 5);
+        var rotation = Quaternion.Euler(10, 20, 30);
+        int calls = 0;
+
+        var instance = Pooling.Instantiate(prefab, position, rotation, parent.transform, prepare: candidate =>
+        {
+            calls++;
+            Assert.That(candidate.activeSelf, Is.False);
+            Assert.That(Pooling.CountActive(prefab), Is.EqualTo(1));
+            Assert.That(candidate.transform.parent, Is.SameAs(parent.transform));
+            Assert.That(Vector3.Distance(candidate.transform.position, position), Is.LessThan(0.0001f));
+            Assert.That(Quaternion.Angle(candidate.transform.rotation, rotation), Is.LessThan(0.01f));
+            candidate.GetComponent<PoolingPreparedState>().Value = 42;
+        });
+
+        Assert.That(calls, Is.EqualTo(1));
+        Assert.That(instance.GetComponent<PoolingPreparedState>().ObservedValue, Is.EqualTo(42));
+        Assert.That(instance.activeSelf, Is.True);
+        if (reused) Assert.That(instance, Is.SameAs(previous));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void PrepareFailureDiscardsItsCheckoutAndKeepsPoolUsable(bool reused)
+    {
+        if (reused) {var previous = Pooling.Instantiate(prefab); Pooling.Destroy(previous);}
+        GameObject rejected = null;
+        var cause = new System.ArgumentException("invalid projectile data");
+
+        var error = Assert.Throws<System.InvalidOperationException>(() => Pooling.Instantiate(prefab, Vector3.zero, Quaternion.identity, parent: null, prepare: candidate =>
+        {
+            rejected = candidate;
+            throw cause;
+        }));
+
+        Assert.That(error.InnerException, Is.SameAs(cause));
+        Assert.That(error.Message, Does.Contain("prepare").And.Contain(prefab.name));
+        Assert.That(rejected == null, Is.True, "Partially prepared instance must be discarded");
+        Assert.That(Pooling.CountActive(prefab), Is.Zero);
+        Assert.That(Pooling.CountInactive(prefab), Is.Zero);
+        Assert.That(Pooling.Instantiate(prefab) != null, Is.True);
+    }
+
+    [Test]
+    public void ReturningDuringPrepareCancelsActivationWithoutLosingOwnership()
+    {
+        GameObject returned = null;
+        var result = Pooling.Instantiate(prefab, Vector3.zero, Quaternion.identity, parent: null, prepare: candidate =>
+        {
+            returned = candidate;
+            Pooling.Destroy(candidate);
+            Pooling.Destroy(candidate);
+        });
+
+        Assert.That(result, Is.Null);
+        Assert.That(returned.activeSelf, Is.False);
+        Assert.That(Pooling.CountActive(prefab), Is.Zero);
+        Assert.That(Pooling.CountInactive(prefab), Is.EqualTo(1));
+        Assert.That(Pooling.Instantiate(prefab), Is.SameAs(returned));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void ClearingDuringPrepareCancelsAndDestroysTheCheckout(bool allPools)
+    {
+        GameObject cleared = null;
+        var result = Pooling.Instantiate(prefab, Vector3.zero, Quaternion.identity, parent: null, prepare: candidate =>
+        {
+            cleared = candidate;
+            if (allPools) Pooling.ClearAll(true);
+            else Pooling.Clear(prefab, true);
+        });
+
+        Assert.That(result == null, Is.True);
+        Assert.That(cleared == null, Is.True);
+        Assert.That(Pooling.CountActive(prefab), Is.Zero);
+        Assert.That(Pooling.CountInactive(prefab), Is.Zero);
+        Assert.That(Pooling.Instantiate(prefab) != null, Is.True);
+    }
+
+    [Test]
+    public void OriginalInstantiateNullParentAndMethodGroupsRemainCompatible()
+    {
+        System.Func<GameObject, Vector3, Quaternion, Transform, GameObject> instantiate = Pooling.Instantiate;
+        System.Func<GameObject, Transform, GameObject> instantiateWithParent = Pooling.Instantiate;
+        var positionalNull = Pooling.Instantiate(prefab, Vector3.zero, Quaternion.identity, null);
+        var viaDelegate = instantiate(prefab, Vector3.one, Quaternion.identity, null);
+        var parentDelegate = instantiateWithParent(prefab, null);
+
+        Assert.That(positionalNull.activeSelf, Is.True);
+        Assert.That(viaDelegate.transform.position, Is.EqualTo(Vector3.one));
+        Assert.That(parentDelegate.transform.parent, Is.Null);
+    }
+
+    [Test]
+    public void PrepareFailureAfterReturnDoesNotPutRejectedInstanceBackInPool()
+    {
+        GameObject rejected = null;
+        Assert.Throws<System.InvalidOperationException>(() => Pooling.Instantiate(prefab, Vector3.zero, Quaternion.identity, parent: null, prepare: candidate =>
+        {
+            rejected = candidate;
+            Pooling.Destroy(candidate);
+            throw new System.InvalidOperationException("preparation cancelled");
+        }));
+
+        Assert.That(rejected == null, Is.True);
+        Assert.That(Pooling.CountActive(prefab), Is.Zero);
+        Assert.That(Pooling.CountInactive(prefab), Is.Zero);
+        Assert.That(Pooling.Instantiate(prefab) != null, Is.True);
+    }
+
     private static void ResetPool()
     {
         var flags = BindingFlags.Static | BindingFlags.NonPublic;
@@ -430,5 +549,17 @@ public class PoolingReturnOnDisable : MonoBehaviour
     private void OnDisable()
     {
         if (ReturnOnDisable) Pooling.Destroy(gameObject);
+    }
+}
+
+[ExecuteAlways]
+public class PoolingPreparedState : MonoBehaviour
+{
+    public int Value;
+    public int ObservedValue;
+
+    private void OnEnable()
+    {
+        ObservedValue = Value;
     }
 }
